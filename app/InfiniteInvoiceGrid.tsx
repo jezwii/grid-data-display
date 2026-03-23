@@ -11,7 +11,7 @@ import {
   TableHead, 
   TableRow,
   Paper,
-  CircularProgress
+  Skeleton
 } from "@mui/material";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -77,7 +77,8 @@ export default function InfiniteInvoiceGrid() {
     error,
     fetchNextPage,
     hasNextPage,
-    status
+    status,
+    isFetchingNextPage
   } = useInfiniteQuery({
     queryKey: ['invoices'],
     queryFn: async ({ pageParam = 1 }) => {
@@ -108,69 +109,96 @@ export default function InfiniteInvoiceGrid() {
         Invoices List
       </Typography>
 
-      {error ? (
-          <Typography color="error">Failed to load invoices. Ensure VPN or local backend is running.</Typography>
-      ) : status === "pending" ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-             <CircularProgress />
-          </Box>
-      ) : (
-        <TableContainer component={Paper} id="scrollableTarget" sx={{ maxHeight: 650, boxShadow: "none", border: "1px solid #e0e0e0" }}>
-          <InfiniteScroll
-            dataLength={rows.length}
-            next={fetchNextPage}
-            hasMore={hasNextPage || false}
-            loader={
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                 <CircularProgress size={30} />
-              </Box>
-            }
-            scrollableTarget="scrollableTarget"
-            endMessage={
+      <TableContainer component={Paper} id="scrollableTarget" sx={{ maxHeight: 650, boxShadow: "none", border: "1px solid #e0e0e0" }}>
+        <InfiniteScroll
+          dataLength={rows.length}
+          next={fetchNextPage}
+          hasMore={hasNextPage || false}
+          loader={<Box sx={{ display: 'none' }} />}
+          scrollThreshold={0.8}
+          scrollableTarget="scrollableTarget"
+          endMessage={
+            !error && status !== "pending" && (
               <Typography textAlign="center" color="text.secondary" sx={{ p: 2 }}>
                 No more records to display.
               </Typography>
-            }
-          >
-            <Table stickyHeader sx={{ minWidth: 1000 }} size="small" aria-label="invoice table">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Invoice #</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Distributor</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Location</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Invoke Amt</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Paid Amt</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Due Date</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>PO Number</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row: ApiInvoice, index: number) => (
-                  <TableRow
-                    hover
-                    key={`${row.id}-${index}`}
-                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                  >
-                    <TableCell>{row.invoiceNumber}</TableCell>
-                    <TableCell>{row.distributorName}</TableCell>
-                    <TableCell>{row.locationName}</TableCell>
-                    <TableCell>
-                       <StatusBadge status={row.status} />
-                    </TableCell>
-                    <TableCell>{formatCurrency(row.invoiceAmount)}</TableCell>
-                    <TableCell>{formatCurrency(row.paymentAmount)}</TableCell>
-                    <TableCell>{formatDate(row.invoiceDate)}</TableCell>
-                    <TableCell>{formatDate(row.dueDate)}</TableCell>
-                    <TableCell>{row.poNumber}</TableCell>
+            )
+          }
+        >
+          <Table stickyHeader sx={{ minWidth: 1000 }} size="small" aria-label="invoice table">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Invoice #</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Distributor</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Location</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Invoke Amt</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Paid Amt</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>Due Date</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: '#fafafa', borderBottom: '2px solid #e0e0e0' }}>PO Number</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {status === "pending" ? (
+                Array.from({ length: 15 }).map((_, index) => (
+                  <TableRow key={`initial-skeleton-${index}`}>
+                    {Array.from({ length: 9 }).map((_, cellIdx) => (
+                      <TableCell key={`col-${cellIdx}`}>
+                        <Skeleton animation="wave" height={24} />
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </InfiniteScroll>
-        </TableContainer>
-      )}
+                ))
+              ) : error && rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} align="center">
+                    <Typography color="error" py={3}>Failed to load invoices. Ensure VPN or local backend is running.</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {rows.map((row: ApiInvoice, index: number) => (
+                    <TableRow
+                      hover
+                      key={`${row.id}-${index}`}
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell>{row.invoiceNumber}</TableCell>
+                      <TableCell>{row.distributorName}</TableCell>
+                      <TableCell>{row.locationName}</TableCell>
+                      <TableCell>
+                         <StatusBadge status={row.status} />
+                      </TableCell>
+                      <TableCell>{formatCurrency(row.invoiceAmount)}</TableCell>
+                      <TableCell>{formatCurrency(row.paymentAmount)}</TableCell>
+                      <TableCell>{formatDate(row.invoiceDate)}</TableCell>
+                      <TableCell>{formatDate(row.dueDate)}</TableCell>
+                      <TableCell>{row.poNumber}</TableCell>
+                    </TableRow>
+                  ))}
+                  {isFetchingNextPage && Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={`fetching-skeleton-${index}`}>
+                      {Array.from({ length: 9 }).map((_, cellIdx) => (
+                        <TableCell key={`fetch-col-${cellIdx}`}>
+                          <Skeleton animation="wave" height={24} />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                  {error && (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center">
+                         <Typography color="error">Failed to load more invoices. Retrying...</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </InfiniteScroll>
+      </TableContainer>
     </Box>
   );
 }
